@@ -6,6 +6,7 @@
 - .forgeignore
 - .travis.yml
 - .gitignore
+- .nodeset.yml
 - Gemfile
 - Gemfile.lock
 - .fixtures.yml
