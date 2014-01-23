@@ -27,7 +27,7 @@ class gitlab::install inherits gitlab {
   }
 
   exec { 'install gitlab-shell':
-    command => "ruby ${git_home}/gitlab-shell/bin/install",
+    command => "bash -c 'source /etc/profile.d/rvm.sh; ruby ${git_home}/gitlab-shell/bin/install'",
     cwd     => $git_home,
     creates => "${gitlab_repodir}/repositories",
     require => File["${git_home}/gitlab-shell/config.yml"],
@@ -62,9 +62,9 @@ class gitlab::install inherits gitlab {
   }
 
   exec { 'install gitlab':
-    command => "bundle install --without development aws test ${gitlab_without_gems} --deployment",
+    command => "bash -c 'source /etc/profile.d/rvm.sh; bundle install --without development aws test ${gitlab_without_gems} --deployment'",
     cwd     => "${git_home}/gitlab",
-    unless  => 'bundle check',
+    unless  => "bash -c 'source /etc/profile.d/rvm.sh; bundle check'",
     timeout => 0,
     require => [
       File["${git_home}/gitlab/config/database.yml"],
@@ -75,7 +75,7 @@ class gitlab::install inherits gitlab {
   }
 
   exec { 'setup gitlab database':
-    command => '/usr/bin/yes yes | bundle exec rake gitlab:setup RAILS_ENV=production',
+    command => "bash -c 'source /etc/profile.d/rvm.sh; /usr/bin/yes yes | bundle exec rake gitlab:setup RAILS_ENV=production'",
     cwd     => "${git_home}/gitlab",
     creates => "${git_home}/.gitlab_setup_done",
     require => Exec['install gitlab'],
@@ -83,7 +83,7 @@ class gitlab::install inherits gitlab {
   }
 
   exec { 'precompile assets':
-    command     => 'bundle exec rake assets:precompile RAILS_ENV=production',
+    command     => "bash -c 'source /etc/profile.d/rvm.sh; bundle exec rake assets:precompile RAILS_ENV=production'",
     cwd         =>  "${git_home}/gitlab",
     refreshonly =>  true,
   }
@@ -95,5 +95,19 @@ class gitlab::install inherits gitlab {
       group   => 'root',
       require => Exec['setup gitlab database'];
   }
+
+  exec { 'rename_gitlab_shell_update_hook':
+    command => "/bin/mv ${git_home}/gitlab-shell/hooks/update ${git_home}/gitlab-shell/hooks/gitlab-shell-update.rb",
+    creates => "${git_home}/gitlab-shell/hooks/gitlab-shell-update.rb",
+    require => File["${git_home}/.gitlab_setup_done"],
+  }
+
+  file { 'new_gitlab_shell_update_hook':
+    path    => "${git_home}/gitlab-shell/hooks/update",
+    ensure  => present,
+    mode    => '0755',
+    content => "#!/bin/bash \nsource /etc/profile.d/rvm.sh \n${git_home}/gitlab-shell/hooks/gitlab-shell-update.rb\n",
+    require => Exec['rename_gitlab_shell_update_hook'],
+  } 
 
 }
