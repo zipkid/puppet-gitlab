@@ -106,7 +106,7 @@ class gitlab::install inherits gitlab {
     path    => "${git_home}/gitlab-shell/hooks/update",
     ensure  => present,
     mode    => '0755',
-    content => "#!/bin/bash \nsource /etc/profile.d/rvm.sh \n${git_home}/gitlab-shell/hooks/gitlab-shell-update.rb\n",
+    content => "#!/bin/bash \nsource /etc/profile.d/rvm.sh \n${git_home}/gitlab-shell/hooks/gitlab-shell-update.rb \$@\n",
     require => Exec['rename_gitlab_shell_update_hook'],
   } 
 
